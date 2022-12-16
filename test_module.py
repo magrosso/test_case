@@ -1,8 +1,10 @@
 from TestCase import TestCase
 
+
 def init_test_case_1() -> bool:
     print('called: init_test_case_1')
     return True
+
 
 def test_case_1():
     start_config = dict(
@@ -13,15 +15,22 @@ def test_case_1():
         release=True,
         force=False,
     )
-    tc = TestCase(report=False, start_func=None, init_func=init_test_case_1, start_config=start_config, prio=1)
-    tc.assert_test(19 == 18, f'Test case failed', prio=3, report=True)
-    for repeat in range(10):
-        tc.assert_test(1 == 0, f'Test case failed', prio=4, report=True)
-    tc.assert_test(19 == 18, f'Test case failed', prio=3, report=True)
+    tc = TestCase(report=False, start_config=start_config, prio=1, max_assert_count=1)
+    if tc.error():
+        return
+
+    tc.assert_true(19 == 18, f'Test case failed', prio=3, report=True)
+    for repeat in range(1):
+        tc.assert_true(1 == 0, f'Test case failed', prio=4, report=True)
+    tc.assert_true(19 == 18, f'Test case failed', prio=3, report=True)
+    tc.assert_false(12 == 12, f'12 == 12 not false')
     tc.create_assert_summary()
+
 
 def test_case_2():
     tc = TestCase(start_config={'tree': 'other_tree'})
-    tc.assert_test(19 == 19, f'Test case failed')
-    tc.assert_test(1 == 0, f'Test case failed', report=True)
+    if tc.error():
+        return
+    tc.assert_true(19 == 19, f'Test case failed')
+    tc.assert_true(1 == 0, f'Test case failed', report=True)
     tc.create_assert_summary()
