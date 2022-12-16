@@ -21,10 +21,10 @@ class TestCase:
     def __init__(self, **kwargs):
         # count assertions per line
         self.assert_counter = Counter()
-        self.tc_name = sys._getframe(1).f_code.co_name
+        self.tc_name: str = sys._getframe(1).f_code.co_name
         # the frame and code objects also offer other useful information:
-        module_path = sys._getframe(1).f_code.co_filename
-        self.mod_name = os.path.splitext(os.path.basename(module_path))[0]
+        module_path: str = sys._getframe(1).f_code.co_filename
+        self.mod_name: str = os.path.splitext(os.path.basename(module_path))[0]
         self.report: bool = kwargs.get('report', False)
         self.start_config: dict = kwargs.get('start_config', TestCase.default_start_config)
         self.start_func: Callable = kwargs.get('start_func', self.start_app)
@@ -92,7 +92,7 @@ class TestCase:
 
     def log_error(self, line_number: int, count: int, priority: int, fail_message: str):
         print(
-            f'{self.tc_name} (line {line_number}, count {count}, prio={priority}): Assert failed with message "{fail_message}"')
+            f'{self.mod_name}:{self.tc_name}:{line_number} (count {count}, prio={priority}): Assert failed with message "{fail_message}"')
 
     def report_error(self, line_number: int, count: int, priority: int, fail_message: str) -> str:
         host_name = socket.gethostname().upper()
