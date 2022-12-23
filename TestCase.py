@@ -61,10 +61,6 @@ class TestCase:
                 print('Error report failed, invalid Jira key returned')
         return True  # don't raise again
 
-    @property
-    def fail(self) -> bool:
-        return self.start_fail or self.init_fail
-
     def start_app(self) -> bool:
         print(f'{self.tc_name}: Start application with config:')
         for k, v in self.start_config.items():
@@ -76,29 +72,36 @@ class TestCase:
 
     def assert_false(self, condition: bool, fail_message: str, *, prio: int = None, report=None) -> bool:
         line_number = sys._getframe(1).f_lineno
-        return self.assert_true(not condition, fail_message, line_number, prio=prio, report=report)
+        return self.assert_true(not condition, fail_message, 'False', line_number, prio=prio, report=report)
 
-    def assert_true(self, condition: bool, fail_message: str, line_number: int = 0, *, prio: int = None, report: bool = None,
+    def assert_equal(self, num_1: int, num_2: int, fail_message: str, *, prio: int = None, report=None) -> bool:
+        line_number = sys._getframe(1).f_lineno
+        return self.assert_true(num_1 == num_2, fail_message, 'Equal', line_number, prio=prio, report=report)
+
+    def assert_true(self, condition: bool, fail_message: str, prefix: str = 'True', line_number: int = None, *,
+                    prio: int = None,
+                    report: bool = None,
                     log: bool = True) -> bool:
         if condition:
             return True
         # handle failed assertion
         # track assertion line number to avoid duplicates (e.g.: loops)
-        line_number = sys._getframe(1).f_lineno if line_number == 0 else line_number
+        line_number = sys._getframe(1).f_lineno if line_number is None else line_number
         # assert priority overrides test case priority
         priority = self.priority if prio is None else prio
         add_to_report = self.report and (report is None or report)
         if add_to_report:
             self.assert_fail_list.append(f'Line {line_number} (prio={priority}): "{fail_message}"')
 
-        add_to_log = self.log and (log is None or log)
-        if add_to_log:
-            self.log_error(line_number, priority, fail_message)
+        create_log = self.log and (log is None or log)
+        if create_log:
+            self.log_error(line_number, priority, fail_message, prefix)
+            
         return False
 
-    def log_error(self, line_number: int, priority: int, fail_message: str):
+    def log_error(self, line_number: int, priority: int, fail_message: str, prefix: str):
         print(
-            f'LOG: {self.mod_name}:{self.tc_name}:{line_number} (prio={priority}): Assert failed: "{fail_message}"')
+            f'LOG: {self.mod_name}:{self.tc_name}:{line_number} (prio={priority}): not {prefix}: "{fail_message}"')
 
     def report_error(self) -> str:
         print(f'Test case error report summary:')
