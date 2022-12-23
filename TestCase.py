@@ -28,42 +28,29 @@ class TestCase:
         # report or log failed assertions?
         self.report: bool = kwargs.get('report', False)
         self.log: bool = kwargs.get('log', True)
-
+        # start and init app
         self.start_config: dict = kwargs.get('start_config', TestCase.DEFAULT_START_CONFIG)
-        self.start_func: Callable = kwargs.get('start_func', self.start_app)
-        self.init_func: Callable = kwargs.get('init_func', self.init_app)
+        self.start_app: Callable = kwargs.get('start', self.start_app)
+        self.init_app: Callable = kwargs.get('init', self.init_app)
         self.priority: int = kwargs.get('prio', 2)
-        self.start_fail = False
-        self.init_fail = False
-        # max number of assertions from same line number
-        self.max_assert_count_per_line: int = kwargs.get('max_assert_count', 0)
-        # mandatory app start with config
-        if self.start_func is not None:
-            self.start_fail = not self.assert_true(self.start_app(), 'Failed to start')
-
-        # optional test case init
-        if self.init_func is not None:
-            self.init_fail = not self.assert_true(self.init_func(), 'Failed to init')
-        else:
-            print(f'{self.tc_name}: Init disabled')
 
     def __enter__(self):
+        # start app with config
+        if self.start_app is not None:
+            if not self.assert_true(self.start_app(), 'Failed to start app'):
+                return None
+
+        # optional test case init
+        if self.init_app is not None:
+            if not self.assert_true(self.init_app(), 'Failed to init app'):
+                return None
+
         return self
 
     def __exit__(self, type, value, traceback):
-        """Create a summary report of all failed assertions
-
-        Args:
-            type ():
-            value ():
-            traceback ():
-
-        Returns:
-
-        """
-        # re-raise exception
-        if type is not None:
-            return False
+        # exception occurred in with-block
+        if type is AttributeError:
+            print(f'__exit__: Exception in "with" block: skipping test case')
 
         # no exception - just report all the test case errors
         # report assert failure to Jira
@@ -72,7 +59,7 @@ class TestCase:
                 print(f'\tError reported as {key}')
             else:
                 print('Error report failed, invalid Jira key returned')
-        return True
+        return True  # don't raise again
 
     @property
     def fail(self) -> bool:
@@ -85,8 +72,7 @@ class TestCase:
         return True
 
     def init_app(self) -> bool:
-        self.assert_true(False, f'Test case init failed')
-        return True
+        return self.assert_true(False, f'Test case init failed')
 
     def assert_false(self, condition: bool, fail_message: str, *, prio: int = None, report=None) -> bool:
         line_number = sys._getframe(1).f_lineno
@@ -112,7 +98,7 @@ class TestCase:
 
     def log_error(self, line_number: int, priority: int, fail_message: str):
         print(
-            f'{self.mod_name}:{self.tc_name}:{line_number} (prio={priority}): Assert failed: "{fail_message}"')
+            f'LOG: {self.mod_name}:{self.tc_name}:{line_number} (prio={priority}): Assert failed: "{fail_message}"')
 
     def report_error(self) -> str:
         print(f'Test case error report summary:')
