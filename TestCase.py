@@ -1,5 +1,4 @@
 import sys
-from collections import Counter
 from typing import Callable
 
 import os
@@ -30,19 +29,19 @@ class TestCase:
         self.log: bool = kwargs.get('log', True)
         # start and init app
         self.start_config: dict = kwargs.get('start_config', TestCase.DEFAULT_START_CONFIG)
-        self.start_app: Callable = kwargs.get('start', self.start_app)
-        self.init_app: Callable = kwargs.get('init', self.init_app)
+        self.start_app_func: Callable = kwargs.get('start', self.start_app)
+        self.init_app_func: Callable = kwargs.get('init', self.init_app)
         self.priority: int = kwargs.get('prio', 2)
 
     def __enter__(self):
         # start app with config
         if self.start_app is not None:
-            if not self.assert_true(self.start_app(), 'Failed to start app'):
+            if not self.assert_true(self.start_app_func(), 'Failed to start app'):
                 return None
 
         # optional test case init
         if self.init_app is not None:
-            if not self.assert_true(self.init_app(), 'Failed to init app'):
+            if not self.assert_true(self.init_app_func(), 'Failed to init app'):
                 return None
 
         return self
@@ -50,7 +49,7 @@ class TestCase:
     def __exit__(self, type, value, traceback):
         # exception occurred in with-block
         if type is AttributeError:
-            print(f'__exit__: Exception in "with" block: skipping test case')
+            print('__exit__: Exception in "with" block: skipping test case')
 
         # no exception - just report all the test case errors
         # report assert failure to Jira
@@ -68,7 +67,7 @@ class TestCase:
         return True
 
     def init_app(self) -> bool:
-        return self.assert_true(False, f'Test case init failed')
+        return self.assert_true(False, 'Test case init failed')
 
     def assert_false(self, condition: bool, fail_message: str, *, prio: int = None, report=None) -> bool:
         line_number = sys._getframe(1).f_lineno
@@ -104,7 +103,7 @@ class TestCase:
             f'LOG: {self.mod_name}:{self.tc_name}:{line_number} (prio={priority}): not {prefix}: "{fail_message}"')
 
     def report_error(self) -> str:
-        print(f'Test case error report summary:')
+        print('Test case error report summary:')
         host_name = socket.gethostname().upper()
         print(f'\tHost: {host_name}\n\tModule: {self.mod_name}\n\tTest Case: {self.tc_name}')
         for assert_failure in self.assert_fail_list:
